@@ -72,7 +72,7 @@ def _local_scatter(inp, pos):
 
 
 def _local_gather(inp, pos, out_batch_size, maybe_overlap=True):
-    inp_buf = torch.zeros(out_batch_size, inp.shape[-1],
+    inp_buf = torch.zeros((out_batch_size,) + inp.shape[1:],
             dtype=inp.dtype, device=inp.device)
     if maybe_overlap:
         inp_buf.index_add_(0, pos, inp)
