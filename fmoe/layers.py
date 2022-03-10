@@ -228,13 +228,13 @@ class FMoE(nn.Module):
 
             def recover_func(tensor):
                 # to: (BxL') x top_k x dim
-                dim = tensor.shape[-1]
-                tensor = tensor.view(-1, self.top_k, dim)
+                shape = tensor.shape
+                tensor = tensor.view(-1, self.top_k, *shape[1:])
                 # to: (BxL) x top_k x d_model
                 x = torch.zeros(
                     mask.shape[0],
                     self.top_k,
-                    dim,
+                    *shape[1:],
                     device=tensor.device,
                     dtype=tensor.dtype,
                 )
@@ -248,8 +248,8 @@ class FMoE(nn.Module):
         else:
 
             def view_func(tensor):
-                dim = tensor.shape[-1]
-                tensor = tensor.view(-1, self.top_k, dim)
+                shape = tensor.shape
+                tensor = tensor.view(-1, self.top_k, *shape[1:])
                 return tensor
 
             moe_outp = tree.map_structure(view_func, fwd)
@@ -257,8 +257,9 @@ class FMoE(nn.Module):
         gate_score = gate_score.view(-1, 1, self.top_k)
 
         def bmm_func(tensor):
-            dim = tensor.shape[-1]
-            tensor = torch.bmm(gate_score, tensor).reshape(-1, dim)
+            shape = tensor.shape
+            tensor = tensor.view(shape[0], shape[1], -1)
+            tensor = torch.bmm(gate_score, tensor).reshape(-1, *shape[2:])
             return tensor
 
         moe_outp = tree.map_structure(bmm_func, moe_outp)
